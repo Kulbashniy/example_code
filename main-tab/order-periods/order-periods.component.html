@@ -1,0 +1,75 @@
+<div class="row" *ngIf="form && !loading; else loadingTemplate">
+    <div class="col-md-12">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;"scope="col">Дата начала<span class="ml-1 text-danger">*</span></th>
+                    <th style="width: 20%;"scope="col">Дата окончания<span class="ml-1 text-danger">*</span></th>
+                    <th style="width: 30%;"scope="col">Название тарифа<span class="ml-1 text-danger">*</span></th>
+                    <th style="width: 15%;"scope="col">Процент индексации</th>
+                    <th style="width: 15%;" scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <ng-template ngFor let-periodFG [ngForOf]="form.controls" let-index="index">
+                    <tr *ngIf="periodFG.controls.Mode.value === 'View'">
+                        <td>{{periodFG.controls.StartDate.value | date: 'dd.MM.yyyy'}}</td>
+                        <td>{{periodFG.controls.EndDate.value | date: 'dd.MM.yyyy'}}</td>
+                        <td>{{periodFG.controls.Tariff.value.Title}}</td>
+                        <td>{{periodFG.controls.Percent.value}}</td>
+                        <td>
+                            <a class="k-button ml-1 mt-1" title="Удалить" (click)="onDeletePeriod(index)" [ngClass]="{'disabled-link':disabled}">
+                                <span class="k-icon k-i-delete text-danger"></span>
+                            </a>
+                            <a class="k-button ml-1 mt-1" title="Редактировать" (click)="onEditPeriod(index)" [ngClass]="{'disabled-link':disabled}">
+                                <span class="k-icon k-i-edit text-primary"></span>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr *ngIf="periodFG.controls.Mode.value === 'Edit'" [formGroup]="periodFG">
+                        <td>
+                            <kendo-datepicker formControlName="StartDate" [format]="'dd.MM.yyyy'">
+                            </kendo-datepicker>
+                            <small *ngIf="periodFG.errors?.invalidDateRange" class="{{periodFG.errors?.invalidDateRange.class}} d-block">{{periodFG.errors?.invalidDateRange.value}}</small>
+                            <small *ngIf="periodFG.controls.StartDate.errors?.required" class="text-danger d-block">Введите начало периода</small>
+                        </td>
+                        <td>
+                            <kendo-datepicker formControlName="EndDate" [format]="'dd.MM.yyyy'">
+                            </kendo-datepicker>
+                            <small *ngIf="periodFG.controls.EndDate.errors?.required" class="text-danger d-block">Введите конец периода</small>
+                        </td>
+                        <td>
+                            <kendo-dropdownlist class="form-control" style="min-width: 200px;" [data]="tariffs" textField="Title" valueField="ID"
+                                [valuePrimitive]="false" formControlName="Tariff">
+                            </kendo-dropdownlist>
+                            <small *ngIf="periodFG.controls.Tariff.errors?.required" class="text-danger d-block">Выберите тариф</small>
+                        </td>
+                        <td>
+                            <kendo-numerictextbox formControlName="Percent" [format]="'n2'" [min]="0">
+                            </kendo-numerictextbox>
+                        </td>
+                        <td>
+                            <a class="k-button ml-1 mt-1" title="Сохранить" (click)="onSavePeriod(index)" [ngClass]="{'disabled-link':disabled}">
+                                <span class="k-icon k-i-save text-primary"></span>
+                            </a>
+                        </td>
+                    </tr>
+                    <small *ngIf="form.errors?.periodsIntersect" class="{{form.errors?.periodsIntersect.class}} d-block">{{form.errors?.periodsIntersect.value}}</small>
+                </ng-template>
+            </tbody>
+        </table>
+        <div *ngIf="form.valid">
+            <button type="button" class="btn btn-primary" (click)="onAddPeriod()" [disabled]="disabled">Создать период</button>
+        </div>
+    </div>
+</div>
+
+<ng-template #loadingTemplate>
+    <div class="row">
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" style="width: 4em; height: 4em;" role="status">
+            <span class="sr-only">Загрузка...</span>
+            </div>
+        </div>
+    </div>
+</ng-template>

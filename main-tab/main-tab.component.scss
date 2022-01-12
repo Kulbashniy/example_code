@@ -1,0 +1,37 @@
+@import "../../../base.scss";
+
+.control-label {
+  font-weight: bold;
+}
+.rt-formlabel {
+  color: #727c8e;
+  background-color: #f1f2f4;
+  padding: 10px;
+  border-radius: 4px;
+}
+.rt-link {
+  color: #007bff !important;
+  cursor: pointer;
+  text-decoration: none;
+  background-color: transparent;
+}
+.rt-link:hover {
+  text-decoration: underline;
+  color: #0056b3 !important;
+}
+.rt-half-opacity {
+  opacity: 0.5;
+}
+.desc-block {
+    display: inline-block;
+    vertical-align: top;
+    padding-left: 0.4em;
+}
+.window-link{
+  cursor: pointer;
+  color: rgb(104, 191, 231) !important;
+  transition: all linear 0.3s !important;
+  &:hover {
+      color: rgb(90, 175, 224) !important;
+  }
+}

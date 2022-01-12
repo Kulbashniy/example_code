@@ -1,0 +1,13 @@
+@import "../../../../base.scss";
+.k-numerictextbox {
+    width: 100px !important;
+}
+.k-datepicker {
+    width: 150px !important;
+}
+.disabled-link {
+    text-decoration: none !important;
+    pointer-events: none !important;
+    cursor: default !important;
+    color: gray !important;
+}

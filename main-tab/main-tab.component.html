@@ -1,0 +1,576 @@
+<form [formGroup]="form" *ngIf="currentOrder && formType">
+
+  <div *ngIf="showTopBtnGroup" class="form-group col-12" style="margin-bottom: 2rem !important;">
+    <kendo-buttongroup>
+      <button kendoButton [toggleable]="false" [primary]="false" (click)="onBtnGrpClick('Акты')">Акты</button>
+      <button kendoButton [toggleable]="false" [primary]="false" (click)="onBtnGrpClick('Заказы')">Заказы</button>
+      <button *ngIf="currentOrder.isLossOrder" kendoButton [toggleable]="false" [primary]="false" (click)="onBtnGrpClick('ПК')">ПК</button>
+      <button *ngIf="showResourceButton" kendoButton [toggleable]="false" [primary]="false" (click)="onOpenResourcesForm()">Ресурсы</button>
+    </kendo-buttongroup>
+  </div>
+
+  <div class="form-group col-6">
+    <label class="control-label">Charge code</label>
+    <div class="control-value">
+      <input class="form-control input-md" type="text" formControlName="ChargeCode">
+    </div>
+    <div class="text-danger" *ngIf="fieldsErrors.ChargeCode">
+      {{fieldsErrors.ChargeCode}}
+    </div>
+  </div>
+
+  <div class="form-group col-6">
+    <label class="control-label">Номер заказа</label>
+    <div class="control-value">
+      <input type="text" class="form-control" formControlName="Number">
+    </div>
+    <div class="text-danger" *ngIf="fieldsErrors.Number">
+      {{fieldsErrors.Number}}
+    </div>
+  </div>
+
+  <div class="form-group col-12">
+    <label class="control-label">Название&nbsp;<span class="text-danger">*</span></label>
+    <div class="control-value">
+      <div class="input-group mb-3">
+          <input class="form-control input-md" type="text" formControlName="Title" maxlength="50">
+          <div class="input-group-append">
+              <span *ngIf="uniqueCheckInProgress" class="input-group-text">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="sr-only"></span>
+                  </div>
+              </span>
+              <span *ngIf="!uniqueCheckInProgress && !form?.controls?.Title?.errors?.notUnique"
+                  class="input-group-text">
+                  <span class="k-icon k-i-check k-color-success"></span>
+              </span>
+              <span *ngIf="!uniqueCheckInProgress && form?.controls?.Title?.errors?.notUnique"
+                  class="input-group-text">
+                  <span class="k-icon k-i-close k-color-error"></span>
+              </span>
+          </div>
+      </div>
+      <small *ngIf="!uniqueCheckInProgress && form?.controls?.Title?.errors?.notUnique" class="text-danger">
+          Заказ с таким названием уже существует!
+      </small>
+  </div>
+    <div class="text-danger" *ngIf="fieldsErrors.Title">
+      {{fieldsErrors.Title}}
+    </div>
+  </div>
+
+  <div class="form-group col-12">
+    <label class="control-label">Расшифровка</label>
+    <div class="control-value">
+      <input type="text" class="form-control" formControlName="Transcript">
+    </div>
+    <div class="text-danger" *ngIf="fieldsErrors.Transcript">
+      {{fieldsErrors.Transcript}}
+    </div>
+  </div>
+
+  <div class="form-group col-12">
+    <label class="control-label">Договор</label>
+    <div class="control-value">
+      <kendo-dropdownlist class="form-control border-0" [data]="contracts" textField="Title" valueField="ID"
+        [valuePrimitive]="false" formControlName="Contract">
+      </kendo-dropdownlist>
+    </div>
+    <small *ngIf="form.errors?.multipleTariffs" class="{{form.errors?.multipleTariffs.class}} d-block">{{form.errors?.multipleTariffs.value}}</small>
+    <small *ngIf="form.controls.Contract?.errors?.noTariff" class="{{form.controls.Contract?.errors?.noTariff.class}} d-block">{{form.controls.Contract?.errors?.noTariff.value}}</small>
+    <div class="text-danger" *ngIf="fieldsErrors.Contract">
+      {{fieldsErrors.ContractID}}
+    </div>
+  </div>
+
+  <!-- Если договор "Доходный" -->
+  <ng-template [ngIf]="contractOfOrder && contractOfOrder.isIncomeContract">
+
+    <div class="form-group col-12" *ngIf="showMoneyFields">
+        <label class="control-label">Выручка по заказу без НДС</label>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <label class="input-group-text"><span [innerHtml]="currencyValue"></span></label>
+            </div>
+            <kendo-numerictextbox class="form-control border-0"
+                [autoCorrect]="true"
+                [spinners]="false"
+                [format]="'n0'"
+                [min]="0"
+                formControlName="Income">
+            </kendo-numerictextbox>
+        </div>
+        <div class="text-danger" *ngIf="fieldsErrors.Income">
+          {{fieldsErrors.Income}}
+        </div>
+    </div>
+
+    <div class="form-group col-12" *ngIf="showMoneyFields">
+      <label class="control-label">Выручка по заказу с НДС</label>
+      <div class="input-group">
+          <div class="input-group-prepend">
+              <label class="input-group-text"><span [innerHtml]="currencyValue"></span></label>
+          </div>
+          <kendo-numerictextbox class="form-control border-0"
+              [autoCorrect]="true"
+              [spinners]="false"
+              [format]="'n0'"
+              [min]="0"
+              formControlName="IncomeNDS">
+          </kendo-numerictextbox>
+      </div>
+  </div>
+
+    <!-- Отображаем поле "Расчетная выручка" только на форме просмотра и если заказ со статусом "Заключен", "Соласован ДЭФИР" или "Согласован" -->
+    <div class="form-group col-12" *ngIf="(formType === FormTypes.View && 
+      (currentOrder.Status === OrderStatuses.Concluded ||
+      currentOrder.Status === OrderStatuses.AgreedDEFIR ||
+      currentOrder.Status === OrderStatuses.Agreed)) && showMoneyFields">
+      <label class="control-label">Расчетная выручка</label>
+      <div class="input-group">
+          <div class="input-group-prepend">
+              <label class="input-group-text"><span [innerHtml]="currencyValue"></span></label>
+          </div>
+          <kendo-numerictextbox class="form-control border-0"
+              [placeholder]="placeholderCalculatedIncome"
+              [autoCorrect]="true"
+              [spinners]="false"
+              [format]="'n0'"
+              [min]="0"
+              formControlName="calculatedIncome">
+          </kendo-numerictextbox>
+      </div>
+  </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Вероятность заключения</label>
+      <div class="input-group">
+          <div class="input-group-prepend">
+              <label class="input-group-text">%</label>
+          </div>
+          <kendo-numerictextbox class="form-control border-0"
+              [autoCorrect]="true"
+              [spinners]="formType === FormTypes.Edit"
+              [format]="'n0'"
+              [min]="0"
+              [max]="100"
+              formControlName="ConfinementProbability">
+          </kendo-numerictextbox>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.ConfinementProbability">
+        {{fieldsErrors.ConfinementProbability}}
+      </div>
+    </div>
+
+  </ng-template>
+   <!-- Если связанный с заказом договор - рамочный -->
+   <ng-template [ngIf]="contractOfOrder && contractOfOrder.isFrameContract">
+      <div class="form-group col-md-12">
+          <label class="control-label">Номер заказа по договору</label>
+          <div class="control-value">
+              <input type="text" class="form-control" formControlName="NumberByContract"/>
+          </div>
+          <div class="text-danger" *ngIf="fieldsErrors.NumberByContract">
+            {{fieldsErrors.NumberByContract}}
+          </div>
+      </div>
+  </ng-template>
+  <!-- Если заказ "Расходный" -->
+  <ng-template [ngIf]="currentOrder.isLossOrder">
+
+    <div class="form-group col-12" *ngIf="showMoneyFields">
+        <label class="control-label">Стоимость по заказу</label>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <label class="input-group-text"><span [innerHtml]="currencyValue"></span></label>
+            </div>
+            <kendo-numerictextbox class="form-control border-0"
+                [autoCorrect]="true"
+                [spinners]="false"
+                [format]="'n0'"
+                [min]="0"
+                formControlName="Loss">
+            </kendo-numerictextbox>
+        </div>
+        <div class="text-danger" *ngIf="fieldsErrors.Loss">
+          {{fieldsErrors.Loss}}
+        </div>
+    </div>
+
+  </ng-template>
+
+  <!-- Если заказ "Доходный" -->
+  <ng-template [ngIf]="currentOrder.isIncomeOrder">
+
+    <div class="form-group col-12">
+      <label class="control-label">Дата начала</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="StartDate" [format]="'dd.MM.yyyy'" [max]="form.controls.EndDate.value"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.StartDate">
+        {{fieldsErrors.StartDate}}
+      </div>
+    </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Дата окончания</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="EndDate" [format]="'dd.MM.yyyy'" [min]="form.controls.StartDate.value"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.EndDate">
+        {{fieldsErrors.EndDate}}
+      </div>
+    </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Планируется ли изменение тарифа в течение срока действия заказа?</label>
+      <div class="control-value" *ngIf="formType === FormTypes.Edit && !currentOrder.IsArchive; else tariffChangeRead">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" id="rt-tariffchange-true" name="TariffChange" [value]="true"
+            formControlName="TariffChange">
+          <label class="form-check-label" for="rt-tariffchange-true">
+            Да
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" id="rt-tariffchange-false" name="TariffChange" [value]="false"
+            formControlName="TariffChange">
+          <label class="form-check-label" for="rt-tariffchange-false">
+            Нет
+          </label>
+        </div>
+      </div>
+      <ng-template #tariffChangeRead>
+        <div class="rt-formlabel">
+          {{currentOrder.TariffChange === true ? 'Да' : currentOrder.TariffChange === false ? 'Нет' : ''}}
+        </div>
+      </ng-template>
+      <div class="text-danger" *ngIf="fieldsErrors.TariffChange">
+        {{fieldsErrors.TariffChange}}
+      </div>
+    </div>
+  
+    <div *ngIf="currentOrder.TariffChange" class="form-group col-12">
+      <or-lib-order-periods 
+        [disabled]="formType !== FormTypes.Edit || currentOrder.IsArchive"
+        [currentOrder]="currentOrder"
+        [orderPeriodsControl]="form.controls.OrderPeriods"
+        (orderPeriodsChange)="orderPeriodsChange($event)"></or-lib-order-periods>
+    </div>
+    <small *ngIf="form.errors?.noPeriods" class="{{form.errors?.noPeriods.class}} d-block">{{form.errors?.noPeriods.value}}</small>
+    <small *ngIf="form.errors?.noTariffs" class="{{form.errors?.noTariffs.class}} d-block">{{form.errors?.noTariffs.value}}</small>
+    <small *ngIf="form.errors?.editMode" class="{{form.errors?.editMode.class}} d-block">{{form.errors?.editMode.value}}</small>
+
+    <div class="form-group col-12">
+      <label class="control-label">Тип</label>
+      <div class="control-value">
+        <kendo-dropdownlist class="form-control border-0" [data]="orderTypes" formControlName="Type">
+        </kendo-dropdownlist>
+      </div>
+    </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Статус оказания</label>
+      <div class="control-value">
+        <kendo-dropdownlist class="form-control border-0" [data]="ordersStatusStates" formControlName="StatusState">
+        </kendo-dropdownlist>
+      </div>
+    </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Учёт трудозатрат</label>
+      <div class="control-value" *ngIf="formType === FormTypes.Edit && !currentOrder.IsArchive; else allowTimeSheetsRead">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" id="rt-allowtimesheets-true" name="AllowTimeSheets" 
+          [value]="true" formControlName="AllowTimeSheets">
+          <label class="form-check-label" for="rt-allowtimesheets-true">
+            Да
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" id="rt-allowtimesheets-false" name="AllowTimeSheets"
+            [value]="false" formControlName="AllowTimeSheets">
+          <label class="form-check-label" for="rt-allowtimesheets-false">
+            Нет
+          </label>
+        </div>
+      </div>
+      <ng-template #allowTimeSheetsRead>
+        <div class="rt-formlabel">
+          {{currentOrder.AllowTimeSheets === true ? 'Да' : currentOrder.AllowTimeSheets === false ? 'Нет' : ''}}
+        </div>
+      </ng-template>
+      <div class="text-danger" *ngIf="fieldsErrors.AllowTimeSheets">
+        {{fieldsErrors.AllowTimeSheets}}
+      </div>
+    </div>
+
+  </ng-template>
+
+  <!-- Если заказ "Расходный" -->
+  <ng-template [ngIf]="currentOrder.isLossOrder">
+    <!-- [AG-2450] -->
+    <!-- <div class="form-group col-12">
+      <label class="control-label">Дата подписания заказа</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="SigningDate" [format]="'dd.MM.yyyy'" [max]="form.controls.ProvisionServiceDatePlan.value"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.SigningDate">
+        {{fieldsErrors.SigningDate}}
+      </div>
+    </div> -->
+    <div class="form-group col-12">
+      <label class="control-label">Планируемая дата подписания</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="PlanSigningDate" [format]="'dd.MM.yyyy'" [max]="form.controls.ProvisionServiceDatePlan.value"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.PlanSigningDate">
+        {{fieldsErrors.PlanSigningDate}}
+      </div>
+    </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Предполагаемая дата оказания услуги</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="ProvisionServiceDatePlan" [format]="'dd.MM.yyyy'" [min]="form.controls.SigningDate.value"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.ProvisionServiceDatePlan">
+        {{fieldsErrors.ProvisionServiceDatePlan}}
+      </div>
+    </div>
+    <div class="form-group col-12">
+      <label class="control-label">Фактическая дата подписания заказа</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="FactSigningDate" [format]="'dd.MM.yyyy'"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.FactSigningDate">
+        {{fieldsErrors.FactSigningDate}}
+      </div>
+    </div>
+    <div class="form-group col-12">
+      <label class="control-label">Фактическая дата оказания услуг</label>
+      <div class="control-value">
+        <kendo-datepicker formControlName="ProvisionServiceDateFact" [format]="'dd.MM.yyyy'"></kendo-datepicker>
+      </div>
+      <div class="text-danger" *ngIf="fieldsErrors.ProvisionServiceDateFact">
+        {{fieldsErrors.ProvisionServiceDateFact}}
+      </div>
+    </div>
+  </ng-template>
+
+  <div class="form-group col-12">
+    <label class="control-label">Ответственный</label>
+    <div class="control-value" *ngIf="formType === FormTypes.Edit && !currentOrder.IsArchive; else responsibleUserRead">
+      <sd-lib-people-picker [model]="currentOrder.ResponsibleUserID" (changeUsers)="onChangedResponsibleUser($event)">
+      </sd-lib-people-picker>
+    </div>
+    <ng-template #responsibleUserRead>
+      <div class="rt-formlabel">{{currentOrder.ResponsibleUserValue}}</div>
+    </ng-template>
+  </div>
+
+  <div class="form-group col-12">
+    <label class="control-label">Хэштеги</label>
+    <div class="control-value" *ngIf="formType === FormTypes.Edit && !currentOrder.IsArchive; else hashtagsRead">
+      <kendo-multiselect class="form-control border-0" [data]="hashtags" formControlName="HashtagsIds" textField="value" valueField="id"
+        [valuePrimitive]="true" [filterable]="true" [kendoDropDownFilter]="{caseSensitive: false, operator: 'contains'}">
+      </kendo-multiselect>
+      <div class="mt-3">
+        <a *ngIf="!showAddSelfHashtagBlock" class="rt-link" (click)="onShowAddSelfHashtagBlock()">
+          Добавить
+          свой вариант
+        </a>
+        <div class="row" *ngIf="showAddSelfHashtagBlock">
+          <div class="col-12">
+            <input class="form-control" type="text" formControlName="selfHashtagText" placeholder="Введите текст">
+          </div>
+          <div class="col-6">
+            <a class="k-button text-primary" (click)="saveSelfHashtag()"
+              [ngClass]="{'rt-half-opacity': saveHashtagInProgress}">
+              <span class="k-icon k-i-save">
+              </span>
+            </a>
+            <a class="k-button text-danger ml-2" (click)="hideAddSelfHashtagBlock()"
+              [ngClass]="{'rt-half-opacity': saveHashtagInProgress}">
+              <span class="k-icon k-i-cancel">
+              </span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <ng-template #hashtagsRead>
+      <div class="rt-formlabel">
+        <span *ngFor="let hashtag of currentOrder.Hashtags">
+          <span>{{hashtag.value}}&nbsp;</span>
+        </span>
+      </div>
+    </ng-template>
+    <div class="text-danger" *ngIf="fieldsErrors.ContractID">
+      {{fieldsErrors.ContractID}}
+    </div>
+  </div>
+
+  <!-- Если заказ "Доходный" -->
+  <ng-template [ngIf]="currentOrder?.isIncomeOrder">
+    
+    <div *ngIf="formType === FormTypes.Edit" class="form-group col-12">
+      <label class="control-label">Сервисы</label>
+      <div class="control-value">
+        <kendo-multiselect #servicesMultiselect
+          class="form-control border-0"
+          formControlName="Services"
+          [data]="services"
+          valueField="id"
+          textField="value"
+          [valuePrimitive]="false"
+          [loading]="servicesLoading"
+          [filterable]="true"
+          [kendoDropDownFilter]="{caseSensitive: false, operator: 'contains'}"
+          [tagMapper]="tagMapper">
+          <ng-template kendoMultiSelectGroupTagTemplate let-dataItems>
+            <span>Сервисов выбрано: {{ dataItems.length }}</span>
+            <span class="k-icon ml-1" style="cursor: pointer;"
+              [ngClass]="{'k-i-arrow-60-up': !showServicesSelectedDetails, 'k-i-arrow-60-down': showServicesSelectedDetails}" 
+              (click)="showServicesSelectedDetails = !showServicesSelectedDetails">
+            </span>
+            <ul *ngIf="showServicesSelectedDetails" class="mb-0">
+              <li *ngFor="let service of dataItems">{{service.value}}</li>
+            </ul>
+          </ng-template>
+        </kendo-multiselect>
+
+        <ng-template #servicesTooltipTemplate>
+          <li *ngFor="let item of servicesMultiselect.value">{{item.value}}</li>
+        </ng-template>
+      </div>
+    </div>
+
+    <div *ngIf="formType === FormTypes.View" class="form-group col-12">
+      <label class="control-label">Сервисы</label>
+      <div class="rt-formlabel">
+        <span>Сервисов выбрано: {{currentOrder.Services.length}}</span>
+        <span class="k-icon ml-1" style="cursor: pointer;"
+          [ngClass]="{'k-i-arrow-60-up': !showServicesSelectedDetails, 'k-i-arrow-60-down': showServicesSelectedDetails}" 
+          (click)="showServicesSelectedDetails = !showServicesSelectedDetails">
+        </span>
+        <ul *ngIf="showServicesSelectedDetails" class="mb-0">
+          <li *ngFor="let service of currentOrder.Services">{{service.value}}</li>
+        </ul>
+      </div>
+    </div>
+
+  </ng-template>
+
+  <div class="form-group col-12">
+    <label class="control-label">Статус</label>
+    <div class="control-value">
+      <kendo-dropdownlist class="form-control border-0" [data]="ordersStatuses" formControlName="Status">
+      </kendo-dropdownlist>
+    </div>
+  </div>
+  <div class="form-group col-12">
+    <label class="control-label">Классификация</label>
+    <div class="control-value">
+      <kendo-dropdownlist class="form-control border-0" [data]="ordersClassifications" formControlName="Classification">
+      </kendo-dropdownlist>
+    </div>
+  </div>
+  <div class="form-group col-12">
+    <label class="control-label">Тип расходов</label>
+    <div class="control-value">
+      <kendo-dropdownlist class="form-control border-0" [data]="orderExpenseTypes" [valuePrimitive]="true"
+        formControlName="ExpenseType">
+      </kendo-dropdownlist>
+    </div>
+  </div>
+
+  <div class="form-group col-12">
+    <label class="control-label">Активный</label>
+    <div>
+      <kendo-switch formControlName="active"></kendo-switch>
+    </div>
+    <small *ngIf="!form.controls.active.value" class="form-text text-info">
+        Заказ в "Архиве". Его нельзя редактировать.
+    </small>
+  </div>
+
+  <!-- Если заказ "Доходный" -->
+  <ng-template [ngIf]="currentOrder.isIncomeOrder">
+
+    <div class="form-group col-12">
+      <label class="control-label">Проектная калькуляция</label>
+      <div class="control-value">
+        <kendo-combobox class="form-control border-0"
+          [data]="calculations" 
+          [allowCustom]="false" 
+          [valueField]="'ID'" 
+          [textField]="'TitleWithChargeCode'" 
+          [valuePrimitive]="true" 
+          [filterable]="true" 
+          [kendoDropDownFilter]="{caseSensitive: false, operator: 'contains'}"
+          formControlName="ProductID">
+        </kendo-combobox>
+      </div>
+      <small *ngIf="form.errors?.productNoContract" class="{{form.errors?.productNoContract.class}} d-block">{{form.errors?.productNoContract.value}}</small>
+    </div>
+
+    <div class="form-group col-12">
+      <label class="control-label">Бюджет проектной калькуляции</label>
+      <div class="control-value">
+        <kendo-combobox class="form-control border-0"
+          [data]="calculationsForBudget" 
+          [allowCustom]="false" 
+          [valueField]="'ID'" 
+          [textField]="'TitleWithChargeCode'" 
+          [valuePrimitive]="true" 
+          [filterable]="true" 
+          [kendoDropDownFilter]="{caseSensitive: false, operator: 'contains'}"
+          formControlName="OrderProductEstimateBudgetID">
+        </kendo-combobox>
+      </div>
+    </div>
+    <div class="form-group col-12">
+        <label class="control-label">Бюджет проекта 1С</label>
+        <div class="control-value">
+            <input type="text" class="form-control" formControlName="OrderProject1CEstimateBudget"/>
+        </div>
+    </div>   
+  </ng-template>
+
+  <div class="form-group col-12">
+    <label class="control-label">Вложения</label>
+    <or-lib-form-attachments [disabled]="formType !== FormTypes.Edit || currentOrder.IsArchive" (deleteAttachment)="onDeleteAttachment($event)"
+      (addAttachments)="onAddAttachments($event)"></or-lib-form-attachments>
+  </div>
+
+  <div class="form-group col-12">
+    <or-lib-create-edit-block-info [object]="currentOrder"></or-lib-create-edit-block-info>
+  </div>
+
+  <div class="form-group col-12">
+    <div *ngIf="saveInProgress" class="spinner-border text-primary" role="status">
+      <span class="sr-only"></span>
+    </div>
+    <div *ngIf="formIsValid === false" class="rt-formicon-wrapper">
+      <span class="k-icon k-i-close-circle text-danger"></span>
+    </div>
+    <button *ngIf="formType === FormTypes.Edit && showSaveButton" type="button" class="btn mr-2 btn-primary" [disabled]="saveInProgress || form.invalid"
+      (click)="onSaveOrder()">
+      Сохранить
+    </button>
+    <button *ngIf="formType !== FormTypes.Edit && showEditButton" type="button" class="btn mr-2 btn-primary" (click)="onEditForm()">
+      Редактировать
+    </button>
+    <button *ngIf="showCancelButton" type="button" class="btn mr-2 btn-danger" (click)="cancelAction()">Выйти</button>
+  </div>
+</form>
+
+<ng-container #dialogContainer></ng-container>
+
+<ng-container #archiveDialogContainer></ng-container>
+<ng-template #archiveDialogTemplate>
+    <h5 class="text-danger">Вы уверены в том, что хотите архивировать заказ?</h5>
+    <h6 class="text-danger">После архивации заказ будет недоступен для редактирования и учёта трудозатрат, все ресурсы заказа будут перенесены в архив.</h6>
+</ng-template>

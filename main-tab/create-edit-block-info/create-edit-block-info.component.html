@@ -1,0 +1,10 @@
+<div class="rt-createditInfoblock">
+    <div *ngIf="object.Created">
+        <span>Создано в {{object.Created | date: "dd.MM.yyyy HH:mm"}} пользователем </span>
+        <a target="_blank" [href]="'/_layouts/15/userdisp.aspx?ID='+object.AuthorID">{{object.AuthorValue}}</a>
+    </div>
+    <div *ngIf="object.Modified">
+        <span>Изменено в {{object.Modified | date: "dd.MM.yyyy HH:mm"}} пользователем </span>
+        <a target="_blank" [href]="'/_layouts/15/userdisp.aspx?ID='+ object.EditorID">{{object.EditorValue}}</a>
+    </div>
+</div>
