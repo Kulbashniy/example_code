@@ -1,0 +1,19 @@
+<kendo-dialog-titlebar (close)="onCancelAction($event)">
+    <div>Закрытие задачи</div>
+</kendo-dialog-titlebar>
+
+<div class="fluid-container h-100">
+    <div class="row">
+        <div class="col">
+            <div class="control-label mb-1">Комментарий</div>
+            <div class="control-value">
+                <kendo-textarea class="w-100" resizable="auto" [(ngModel)]="comment"></kendo-textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<kendo-dialog-actions>
+    <button kendoButton (click)="onCancelAction($event)" class="no-box-shadow" [disabled]="saveInProgress">Отмена</button>
+    <button kendoButton (click)="onSaveAction($event)" class="no-box-shadow" [primary]="true" [disabled]="saveInProgress">Закрыть задачу</button>
+</kendo-dialog-actions>

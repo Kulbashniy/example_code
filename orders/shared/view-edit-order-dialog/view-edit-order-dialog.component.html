@@ -1,0 +1,8 @@
+<kendo-dialog-titlebar (close)="onCancelAction($event)">
+    <div>Работа с заказом</div>
+</kendo-dialog-titlebar>
+<div class="fluid-container h-100">
+    <or-lib-view-edit-order *ngIf="orderId$.getValue() && formType" [id]="orderId$" [formType]="formType"
+        (save)="onSaveAction($event)" (cancel)="onCancelAction()">
+    </or-lib-view-edit-order>
+</div>

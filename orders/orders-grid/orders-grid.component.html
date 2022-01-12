@@ -1,0 +1,13 @@
+<kendo-tabstrip class="rt-orders-grid">
+    <kendo-tabstrip-tab height="100%" title="Доходные" [selected]="true">
+        <ng-template kendoTabContent>
+            <spa-orders-income-grid></spa-orders-income-grid>
+        </ng-template>
+    </kendo-tabstrip-tab>
+    <kendo-tabstrip-tab height="100%" title="Расходные">
+        <ng-template kendoTabContent>
+            <spa-orders-loss-grid></spa-orders-loss-grid>
+        </ng-template>
+    </kendo-tabstrip-tab>
+</kendo-tabstrip>
+

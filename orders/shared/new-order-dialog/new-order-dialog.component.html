@@ -1,0 +1,7 @@
+<kendo-dialog-titlebar (close)="onCancelAction($event)">
+    <div>Работа с заказом</div>
+</kendo-dialog-titlebar>
+<div class="fluid-container h-100">
+    <or-lib-create-order (save)="onSaveAction($event)" (cancel)="onCancelAction()">
+    </or-lib-create-order>
+</div>

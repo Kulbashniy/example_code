@@ -1,0 +1,304 @@
+<kendo-grid #grid="kendoGrid" class="h-100" [data]="gridSource" [loading]="gridLoadingInProgress" [resizable]="true"
+    [selectable]="gridSelectableSettings" [kendoGridSelectBy]="'ID'" (selectedKeysChange)="gridSelectedKeysChange($event)" 
+    (remove)="removeHandler($event)"
+    [group]="gridState.group" [groupable]="true" (dataStateChange)="dataStateChange($event)"
+    [pageSize]="gridState.take" [skip]="gridState.skip" [pageable]="true"
+    (pageChange)="gridPageChange($event)" [columnMenu]="true" filterable="menu" [filter]="gridState.filter"
+    [reorderable]="true">
+    <ng-template kendoGridToolbarTemplate [position]="'top'" let-position="position">
+        <div class="inline-block" *ngIf="Order?.Status && Order?.Status !== OrderStatuses.AgreedDEFIR">
+            <!--tooltip не работает если кнопка disabled, поэтому использован такой способ-->
+            <button kendoTooltip spTooltip [key]="(!Order || !allowCreationResource) ? 'orders_resourceGrid_createResource' : ''"
+                type="button" (click)="openOrderResourceDialog()" class="btn btn-primary"
+                [ngClass]="{'rt-disabled-btn': (!Order || !allowCreationResource)}">Создать
+                ресурс</button>
+            <button type="button" class="btn btn-info ml-2" [disabled]="selectedGridRows.length === 0"
+                (click)="onCopySelectedOrdersResources()">Копировать выделенные</button>
+            <button *ngIf="Order?.Status !== OrderStatuses.Concluded" type="button" class="btn btn-info ml-2" [disabled]="selectedGridRows.length === 0"
+                (click)="onDeletedSelectedOrdersResources()">Архивировать выделенные</button>
+        </div>
+        <div class="inline-block ml-2">
+            <button type="button" class="btn btn-primary" [disabled]="Order?.Status === OrderStatuses.Concluded || (calculateInProgress$ | async)"
+                (click)="onCalculateResources()">
+                Пересчитать ресурсы
+                <kendo-loader *ngIf="calculateInProgress$ | async"
+                    [type]="'pulsing'"
+                    [themeColor]="'primary'"
+                    [size]="'small'">
+                </kendo-loader>
+            </button>
+        </div>
+        <div class="inline-block mb-2">
+            <div class="inline-block m-2" *ngIf="currentOrderPeriods.length !== 0">
+                <b>Отображаемые периоды:</b>
+            </div>
+            <div *ngFor="let period of currentOrderPeriods" class="inline-block m-2">
+                <input class="k-checkbox" type="checkbox" [id]="period.ID" (change)="onChangeSelectedPeriods()"
+                    [(ngModel)]="period.Checked">
+                <label class="k-checkbox-label" [for]="period.ID">
+                    {{period.StartDate | date:'dd.MM.yyy'}}&nbsp;-&nbsp;{{period.EndDate |
+                    date:'dd.MM.yyy'}}</label>
+            </div>
+        </div>
+    </ng-template>
+    <spa-grid-custom-messages></spa-grid-custom-messages>
+    <kendo-grid-checkbox-column showSelectAll="true" [width]="40" [hidden]="!allowCreationResource">
+        <ng-template kendoGridCellTemplate let-idx="rowIndex" let-dataItem="dataItem">
+            <input [disabled]="!dataItem.AllowEditing" [kendoGridSelectionCheckbox]="idx" />
+        </ng-template>
+    </kendo-grid-checkbox-column>
+    <kendo-grid-column #commandsColumn field="commands" title="Действия" width="260" [groupable]="false"
+        [filterable]="false">
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            <div *ngIf="dataItem.AllowEditing && Order?.Status && Order?.Status !== OrderStatuses.AgreedDEFIR" style="display: inline-block;">
+                <a (click)="openOrderResourceDialog(dataItem)" class="k-button ml-1 mt-1"
+                    title="Редактировать">
+                    <span class="k-icon k-i-edit text-warning"></span>
+                </a>
+                <a *ngIf="dataItem.ID" class="k-button ml-1 mt-1" title="Копировать"
+                    (click)="onOpenCopyOrderResourceDialog(dataItem)">
+                    <span class="k-icon k-i-copy text-primary"></span>
+                </a>
+                <a *ngIf="Order?.Status !== OrderStatuses.Concluded" kendoGridRemoveCommand
+                    class="k-button ml-1 mt-1" title="В архив">
+                    <span class="k-icon k-i-delete text-danger"></span>
+                </a>
+            </div>
+            <div style="display: inline-block;">
+                <a class="k-button ml-1 mt-1" title="Комментарии" (click)="onOpenCommentsDialog(dataItem)">
+                    <span class="k-icon k-i-comment text-primary"></span>
+                </a>
+            </div>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="OrderValue" title="Заказ" [width]="200">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [data]="distinctDict.Orders"
+                textField="OrderValue" valueField="OrderValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="OrderStatus" title="Статус заказа" [width]="150">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.OrderStatuses" textField="OrderStatus" valueField="OrderStatus">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="OrderChargeCode" title="Charge code" [width]="200">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.OrderChargeCodes" textField="OrderChargeCode" valueField="OrderChargeCode">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="OrderServices" title="Услуги заказа" [width]="200">
+    </kendo-grid-column>
+    <kendo-grid-column field="EmployeReqestNumber" title="Номер заявки" [width]="150" filter="text">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.EmployeReqestNumbers" textField="EmployeReqestNumber" valueField="EmployeReqestNumber">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="PeriodValue" title="Период ресурса" [width]="250">
+        <ng-template kendoGridGroupHeaderTemplate let-value="value">
+            <div style="width: 210px;">Период:&nbsp;<b>{{value}}</b></div>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="StartDate" title="Дата начала ресурса" [width]="200" filter="date">
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            {{dataItem.StartDate | date:'dd.MM.yyyy'}}
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="EndDate" title="Дата окончания ресурса" [width]="200" filter="date">
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            {{dataItem.EndDate | date:'dd.MM.yyyy'}}
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column *ngIf="hasPermission$ | async" field="TariffRate" title="Ставка" [width]="170">
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            {{dataItem.TariffRate | currency : 'RUB' : 'symbol' : undefined : 'ru-RU'}}
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="PositionValue" title="Должность" [width]="250">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.Positions" textField="PositionValue" valueField="PositionValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="RoleValue" title="Роль" [width]="220">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [data]="distinctDict.Roles"
+                textField="RoleValue" valueField="RoleValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="RegionValue" title="Регион" [width]="220">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [data]="distinctDict.Regions"
+                textField="RegionValue" valueField="RegionValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column-group>
+        <ng-template kendoGridHeaderTemplate>
+            <span>Трудоёмкость</span>
+        </ng-template>
+        <kendo-grid-column field="WorkCapacity" [format]="'n3'" title="Трудоёмкость" [width]="200" filter="numeric"
+            [columnMenu]="false">
+            <ng-template kendoGridHeaderTemplate>
+                <div>
+                    <div>Всего:&nbsp;<b>{{getTotalValue('WorkCapacity', 3) | number:'1.3' }}</b></div>
+                </div>
+            </ng-template>
+            <ng-template kendoGridGroupHeaderColumnTemplate let-group="group" let-aggregates="aggregates">
+                <b>
+                    {{ aggregates.WorkCapacity.sum | number:'1.3' }}
+                </b>
+            </ng-template>
+        </kendo-grid-column>
+    </kendo-grid-column-group>
+    <kendo-grid-column-group *ngIf="hasPermission$ | async">
+        <ng-template kendoGridHeaderTemplate>
+            <span>Сумма, без НДС</span>
+        </ng-template>
+        <kendo-grid-column field="SumWithoutVAT" [format]="'n2'" title="Сумма, без НДС" [width]="200" filter="numeric"
+            [columnMenu]="false">
+            <ng-template kendoGridHeaderTemplate>
+                <div>
+                    <div>Всего:&nbsp;<b>{{getTotalValue('SumWithoutVAT', 2) | currency : 'RUB' : 'symbol' : undefined : 'ru-RU'}}</b></div>
+                </div>
+            </ng-template>
+            <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+                {{dataItem.SumWithoutVAT | currency : 'RUB' : 'symbol' : undefined : 'ru-RU'}}
+            </ng-template>
+            <ng-template kendoGridGroupHeaderColumnTemplate let-group="group" let-aggregates="aggregates">
+                <b>
+                    {{ aggregates.SumWithoutVAT.sum | currency : 'RUB' : 'symbol' : undefined : 'ru-RU' }}
+                </b>
+            </ng-template>
+        </kendo-grid-column>
+    </kendo-grid-column-group>
+    <kendo-grid-column-group *ngIf="hasPermission$ | async">
+        <ng-template kendoGridHeaderTemplate>
+            <span>Сумма, с НДС</span>
+        </ng-template>
+        <kendo-grid-column field="SumWithVAT" title="Сумма, с НДС" [width]="200" [columnMenu]="false">
+            <ng-template kendoGridHeaderTemplate>
+                <div>
+                    <div>Всего:&nbsp;<b>{{getTotalValue('SumWithVAT', 2) | currency : 'RUB' : 'symbol' : undefined : 'ru-RU'}}</b></div>
+                </div>
+            </ng-template>
+            <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+                {{dataItem.SumWithVAT | currency : 'RUB' : 'symbol' : undefined : 'ru-RU'}}
+            </ng-template>
+            <ng-template kendoGridGroupHeaderColumnTemplate let-group="group" let-aggregates="aggregates">
+                <b>
+                    {{ aggregates.SumWithVAT.sum | currency : 'RUB' : 'symbol' : undefined : 'ru-RU' }}
+                </b>
+            </ng-template>
+        </kendo-grid-column>
+    </kendo-grid-column-group>
+    <kendo-grid-column field="OrderStartDate" title="Дата начала заказа" [width]="200" filter="date">
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            {{dataItem.OrderStartDate | date:'dd.MM.yyyy'}}
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="OrderEndDate" title="Дата окончания заказа" [width]="200" filter="date">
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            {{dataItem.OrderEndDate | date:'dd.MM.yyyy'}}
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="DepartmentDirection2" title="Дирекция" [width]="250" [hidden]="true">
+    </kendo-grid-column>
+    <kendo-grid-column field="DepartmentDivision" title="Департамент" [width]="250" [hidden]="true">
+    </kendo-grid-column>
+    <kendo-grid-column field="DepartmentSubdivision" title="Отдел" [width]="250" [hidden]="true">
+    </kendo-grid-column>
+    <kendo-grid-column field="DepartmentGroup" title="Направление" [width]="250" [hidden]="true">
+    </kendo-grid-column>
+    <kendo-grid-column field="DepartmentManagerValue" title="Руководитель подразделения" [width]="250">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.DepartmentManagers" textField="DepartmentManagerValue"
+                valueField="DepartmentManagerValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="DepartmentApprovalEmployeeValue" title="Согласующий" [width]="250" hidden="true">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.DepartmentApprovalEmployees" textField="DepartmentApprovalEmployeeValue"
+                valueField="DepartmentApprovalEmployeeValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="EmployeeValue" title="Сотрудник" [width]="250">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.Employees" textField="EmployeeValue" valueField="EmployeeValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="StaffType" title="Тип ШЕ" [width]="170" hidden="true">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter"
+                [data]="distinctDict.StaffTypes" textField="StaffType" valueField="StaffType">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column-group>
+        <ng-template kendoGridHeaderTemplate>
+            <span>Количество</span>
+        </ng-template>
+        <kendo-grid-column field="Value" title="Количество" [format]="'n3'" [groupable]="false" [width]="200"
+            filter="numeric" [columnMenu]="false">
+            <ng-template kendoGridHeaderTemplate>
+                <div>
+                    <div>Всего:&nbsp;<b>{{getTotalValue('Value', 3) | number: '1.3'}}</b></div>
+                </div>
+            </ng-template>
+            <ng-template kendoGridGroupHeaderColumnTemplate let-group="group" let-aggregates="aggregates">
+                <b>
+                    {{ aggregates.Value.sum | number: '1.3'}}
+                </b>
+            </ng-template>
+        </kendo-grid-column>
+    </kendo-grid-column-group>
+    <kendo-grid-column field="EditorValue" title="Кем изменено" [width]="220" [hidden]="true">
+        <ng-template kendoGridHeaderTemplate let-column let-columnIndex="columnIndex">
+            {{column.title}}<field-description class="ml-1" style="display: inline-table; vertical-align: bottom"
+                description=""></field-description>
+        </ng-template>
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [data]="distinctDict.Editors"
+                textField="EditorValue" valueField="EditorValue">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-column field="Modified" title="Изменено" [groupable]="false" [width]="170" filter="date"
+        [hidden]="true">
+        <ng-template kendoGridHeaderTemplate let-column let-columnIndex="columnIndex">
+            {{column.title}}<field-description class="ml-1" style="display: inline-table; vertical-align: bottom"
+                description=""></field-description>
+        </ng-template>
+        <ng-template kendoGridCellTemplate let-dataItem="dataItem">
+            {{dataItem.Modified | date:'dd.MM.yyyy HH:mm'}}
+        </ng-template>
+    </kendo-grid-column>
+    <kendo-grid-excel [fileName]="'Отчёт ресурсов для заказов.xlsx'" [filterable]="true" [fetchData]="exportAllData">
+    </kendo-grid-excel>
+    <ng-template kendoPagerTemplate>
+        <spa-grid-paginator-template></spa-grid-paginator-template>
+    </ng-template>
+</kendo-grid>
+
+<spa-copy-orderresource-dialog [model]="copiedOrdersResources" (closeDialog)="onCloseCopyOrderResourceDialog()">
+</spa-copy-orderresource-dialog>
+<spa-order-resource-dialog [model]="currentOrderResource" [currentOrder]="Order" (closeDialog)="onCloseOrderResourceDialog($event)">
+</spa-order-resource-dialog>
+<spa-chat-dialog [showDialog]="showCommentsDialog" [comments]="currentComments"
+    [orderResourceId]="commentOrderResourceId" (closeDialog)="onCloseCommentsDialog($event)">
+</spa-chat-dialog>

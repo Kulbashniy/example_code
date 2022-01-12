@@ -1,0 +1,120 @@
+<div *ngIf="Order.getValue()" class="fluid-container">
+
+    <div class="row mb-2">
+        <div class="col-5" style="font-size: 1.3em;">
+            <span class="ml-3" style="color: black">{{Order.getValue().Title.trim()}}</span>
+            <span class="ml-2 badge badge-primary">{{Order.getValue().ChargeCode.trim()}}</span>
+        </div>
+        <div class="col text-right">
+            <button class="btn btn-primary no-box-shadow mr-2" (click)="onBtnGrpClick('Акты')" [disabled]="!(hasPermission$ | async)" type="button">Акты</button>
+            <button class="btn btn-primary no-box-shadow mr-2" (click)="onBtnGrpClick('Заказы')" [disabled]="!(hasPermission$ | async)" type="button">Заказы</button>
+            <button class="btn btn-primary no-box-shadow mr-2" (click)="requestCalculation()" [disabled]="!(hasPermission$ | async)" type="button">Запросить расчет</button>
+            <button class="btn btn-primary no-box-shadow mr-2" (click)="onReport()" [disabled]="!(hasPermission$ | async) || resorceGridLoading" type="button">Выгрузить отчет</button>
+            <button class="btn btn-primary no-box-shadow mr-2" (click)="onReportForm()" [disabled]="!(hasPermission$ | async) || resorceGridLoading" kendoTooltip spTooltip key="orders_orderManagement_ReportForm" type="button">Выгрузить заказ</button>
+            <button class="btn btn-primary no-box-shadow" (click)="onChatCollapsedChange(!chatCollapsed)" type="button">Чат</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <kendo-splitter orientation="vertical" style="border: 0;">
+                <kendo-splitter-pane [collapsible]="false" [resizable]="false">
+
+                    <kendo-splitter orientation="horizontal" style="border: 0; height: 75vh;">
+                        <kendo-splitter-pane [collapsible]="true" size="35%">
+                            <kendo-card [width]="'100%'" class="h-100" style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-bottom-left-radius: 0;">
+                                <kendo-card-header>
+                                    <h6 class="text-muted text-center">Информация</h6>
+                                </kendo-card-header>
+                                <kendo-card-body class="scroll-card-body rtcr-custom-scrollbar">
+                                    <or-lib-view-edit-order *ngIf="orderId$.getValue()" 
+                                        [id]="orderId$" 
+                                        [(formType)]="formType"
+                                        [showCancelButton]="(hasPermission$ | async) && formType === FormTypes.Edit"
+                                        [showEditButton]="hasPermission$ | async"
+                                        [showSaveButton]="hasPermission$ | async"
+                                        [showResourceButton]="false"
+                                        [showTopBtnGroup]="false"
+                                        [showMoneyFields]="hasPermission$ | async"
+                                        [onGroupBtnClick]="onGroupBtnClick"
+                                        (save)="onSaveOrder($event)"
+                                        (cancel)="onCancelOrder()">
+                                    </or-lib-view-edit-order>
+                                </kendo-card-body>
+                            </kendo-card>
+                        </kendo-splitter-pane>
+
+                        <kendo-splitter-pane [collapsible]="false">
+                            <kendo-card [width]="'100%'" class="h-100" style="border-radius: 0;">
+                                <kendo-card-header>
+                                    <h6 class="text-muted text-center">Задачи</h6>
+                                </kendo-card-header>
+                                <kendo-card-body>
+                                    <kendo-grid style="height: 65vh;"
+                                                [data]="orderTasks"
+                                                [loading]="orderTasksLoading">
+
+                                        <spa-grid-custom-messages></spa-grid-custom-messages>
+
+                                        <kendo-grid-column field="DepartmentValue" title="Подразделение" [width]="220">
+                                        </kendo-grid-column>
+
+                                        <kendo-grid-column field="DepartmentManager" title="Руководитель" [width]="200">
+                                        </kendo-grid-column>
+                                        
+                                        <kendo-grid-column field="EndDate" title="Срок" [width]="100" format="dd.MM.yyyy">
+                                        </kendo-grid-column>
+
+                                        <kendo-grid-column field="Status" title="Статус" [width]="100">
+                                            <ng-template kendoGridCellTemplate let-dataItem let-rowIndex="rowIndex">
+                                                <span [ngClass]="{'text-danger': dataItem.Status == OrderTaskStatuses.Canceled, 'text-success': dataItem.Status == OrderTaskStatuses.Closed, 'text-warning': dataItem.Status == OrderTaskStatuses.Opened}">{{dataItem.Status}}</span>
+                                            </ng-template>
+                                        </kendo-grid-column>
+
+                                        <kendo-grid-column field="Comment" title="Комментарий" [width]="200">
+                                        </kendo-grid-column>
+
+                                        <kendo-grid-column title="" [width]="90">
+                                            <ng-template kendoGridCellTemplate let-dataItem let-rowIndex="rowIndex">
+                                                <span [ngClass]="{'k-icon': true, 'k-i-cancel-outline': true, 'can-cancel': dataItem.Status == OrderTaskStatuses.Opened, 'cancel-disabled': dataItem.Status != OrderTaskStatuses.Opened, 'mr-2': true}" (click)="onCancelClick(dataItem)"></span>
+                                                <span [ngClass]="{'k-icon': true, 'k-i-check': true, 'can-close': dataItem.Status == OrderTaskStatuses.Opened, 'close-disabled': dataItem.Status != OrderTaskStatuses.Opened}" (click)="onCloseClick(dataItem)"></span>
+                                            </ng-template>
+                                        </kendo-grid-column>
+                                    </kendo-grid>
+                                </kendo-card-body>
+                            </kendo-card>
+                        </kendo-splitter-pane>
+
+                        <kendo-splitter-pane [collapsible]="true" [collapsed]="chatCollapsed" (collapsedChange)="onChatCollapsedChange($event)" size="30%">
+                            <kendo-card [width]="'100%'" class="h-100" style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+                                <kendo-card-header>
+                                    <h6 class="text-muted text-center">Чат</h6>
+                                </kendo-card-header>
+                                <kendo-card-body>
+                                    <kendo-chat style="height: 65vh;" [messages]="chatMessages" [user]="chatCurrentUser" (sendMessage)="sendMessage($event)">
+                                        <kendo-chat-messages send="Отправить" messagePlaceholder="Сообщение...">
+                                        </kendo-chat-messages>
+                                    </kendo-chat>
+                                </kendo-card-body>
+                            </kendo-card>
+                        </kendo-splitter-pane>
+                    </kendo-splitter>
+                </kendo-splitter-pane>
+
+                <kendo-splitter-pane>
+                    <kendo-card [width]="'100%'" style="border-top-left-radius: 0; border-top-right-radius: 0; height: 700px;">
+                        <kendo-card-header>
+                            <h6 class="text-muted text-center">Ресурсы</h6>
+                        </kendo-card-header>
+                        <kendo-card-body style="height: 600px;">
+                            <spa-orders-resource-grid *ngIf="Order.getValue()" [Order$]="Order" [generateReportFromGrid]="generateReportFromGrid" [generateReportForContract]="generateReportForContract" (gridLoading)="onResorceGridLoading($event)"></spa-orders-resource-grid>
+                        </kendo-card-body>
+                    </kendo-card>
+                </kendo-splitter-pane>
+            </kendo-splitter>
+        </div>
+    </div>
+
+</div>
+
+<ng-container #dialogContainer></ng-container>

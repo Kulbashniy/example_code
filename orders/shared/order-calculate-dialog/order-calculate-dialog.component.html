@@ -1,0 +1,47 @@
+<kendo-dialog-titlebar (close)="onCancelAction($event)">
+    <div>Создать задачу по расчету ресурсов</div>
+</kendo-dialog-titlebar>
+
+<div class="fluid-container h-100">
+    <div class="row mb-2">
+        <div class="col">
+            <div class="control-label mb-1">Подразделения<span class="required">*</span></div>
+            <div class="control-value">
+                <kendo-multiselect  class="form-control border-0"
+                                    #multiselectDepartments
+                                    [data]="departments"
+                                    [(ngModel)]="modelToSave.departments"
+                                    valueField="ID" 
+                                    textField="Title"
+                                    [valuePrimitive]="true"
+                                    [filterable]="true"
+                                    [loading]="departmentsLoading">
+                    <ng-template kendoMultiSelectItemTemplate let-dataItem>
+                        <span>{{ dataItem.Title }}&nbsp;&nbsp;({{ dataItem.ManagerValue }})</span>
+                    </ng-template>
+                </kendo-multiselect>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col">
+            <div class="control-label mb-1">Срок<span class="required">*</span></div>
+            <div class="control-value">
+                <kendo-datepicker [format]="'dd.MM.yyyy'" [min]="minDate" [(ngModel)]="modelToSave.endDate"></kendo-datepicker>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="control-label mb-1">Комментарий</div>
+            <div class="control-value">
+                <kendo-textarea class="w-100" resizable="auto" [(ngModel)]="modelToSave.comment"></kendo-textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<kendo-dialog-actions>
+    <button kendoButton (click)="onCancelAction($event)" class="no-box-shadow" [disabled]="saveInProgress">Отмена</button>
+    <button kendoButton (click)="onSaveAction($event)" class="no-box-shadow" [primary]="true" [disabled]="saveInProgress || !validate()">Сохранить</button>
+</kendo-dialog-actions>

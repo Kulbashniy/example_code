@@ -1,0 +1,231 @@
+<kendo-grid class="h-100" ordersGridBinding ordersType="Доходный" [skip]="0" [pageSize]="10" [pageable]="{
+                responsive: true,
+                buttonCount: 3,
+                info: true,
+                type: 'numeric',
+                pageSizes: true,
+                previousNext: true,
+                position: 'bottom'
+            }" [columnMenu]="true" [reorderable]="true" [resizable]="true" [sortable]="true" [sort]="sort"
+    [groupable]="false" (cellClick)="cellClickHandler($event)" filterable="menu">
+
+    <spa-grid-custom-messages></spa-grid-custom-messages>
+
+    <ng-template kendoGridToolbarTemplate position="top">
+        <div class="w-100">
+            <div class="col px-0">
+                <button (click)="onNewOrderClick()" class="btn btn-primary" type="button">Создать заказ</button>
+            </div>
+            <div class="col px-0">
+                <button (click)="onDefaultView()" class="btn btn-secondary float-right" type="button">Стандартное
+                    представление</button>
+            </div>
+        </div>
+    </ng-template>
+
+    <kendo-grid-column field="ChargeCode" title="Charge Code" [width]="180">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderChargeCode">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Title" title="Название" [width]="200">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="Title">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="StartDate" title="Дата начала заказа" filter="date" format="dd.MM.yyyy" [width]="190">
+    </kendo-grid-column>
+
+    <kendo-grid-column field="EndDate" title="Дата завершения заказа" filter="date" format="dd.MM.yyyy" [width]="220">
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ContractValue" title="Договор" [width]="180">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderContract">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ResponsibleUserValue" title="Ответственный за заказ" [width]="240">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderResponsibleUser">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Number" title="Номер" [width]="120">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderNumber">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Transcript" title="Описание" [width]="250">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderTranscript">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Status" title="Статус заказа" [width]="180">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [data]="filterDict.Status" textField="Status" valueField="Status">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="StatusState" title="Статус оказания" [width]="180">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [data]="filterDict.StatusState" textField="StatusState" valueField="StatusState">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Type" title="Тип заказа" [width]="160">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [data]="filterDict.Type" textField="Type" valueField="Type">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="AllowTimeSheets" title="Учет трудозатрат" filter="boolean" [width]="180">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{dataItem.AllowTimeSheets ? 'Да' : 'Нет'}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Services" title="Сервисы СКУФ" [width]="180" [sortable]="false" [groupable]="false">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderServiceRc">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{getStringFromIObjArr(dataItem.Services)}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="TerminationDatePlan" title="Дата рассторжения" filter="date" format="dd.MM.yyyy"
+        [width]="230">
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Hashtags" title="Хэштеги" [width]="160" [sortable]="false" [groupable]="false">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderHashtags">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{getStringFromIObjArr(dataItem.Hashtags)}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="CompanyValue" title="Компания" [width]="140">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderCompany">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ContactValue" title="Контакт" [width]="240">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderContact">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ProductValue" title="Проектная калькуляция" [width]="240">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-sp-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [spListName]="spListName" [spViewName]="spViewName" spFieldName="OrderProduct">
+            </spa-grid-multiselect-sp-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="TariffChange" title="Тарифы меняются" filter="boolean" [width]="200">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{dataItem.TariffChange ? 'Да' : 'Нет'}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ConfinementProbability" title="Вероятность заключения" filter="numeric" [width]="240">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{dataItem.ConfinementProbability ? dataItem.ConfinementProbability + '%' : ''}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="Income" title="Выручка" filter="numeric" [width]="180">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{dataItem.Income | currency : 'RUB' : 'symbol' : undefined : 'ru-RU'}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ExpenseType" title="Тип расходов" [width]="160">
+        <ng-template kendoGridFilterMenuTemplate let-filter="filter" let-filterService="filterService"
+            let-column="column">
+            <spa-grid-multiselect-filter [filterService]="filterService" [filter]="filter" [field]="column.field"
+                [data]="filterDict.ExpenseType" textField="ExpenseType" valueField="ExpenseType">
+            </spa-grid-multiselect-filter>
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="SigningDate" title="Дата подписания" filter="date" format="dd.MM.yyyy" [width]="200">
+    </kendo-grid-column>
+
+    <kendo-grid-column field="ProvisionServiceDatePlan" title="Планируемая дата оказания" filter="date"
+        format="dd.MM.yyyy" [width]="240">
+    </kendo-grid-column>
+
+    <kendo-grid-column field="RelatedOrders" title="Связанные заказы" [width]="200" [filterable]="false"
+        [sortable]="false" [groupable]="false">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{getStringFromIObjArr(dataItem.RelatedOrders)}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="RelatedProducts" title="Связанные ПК" [width]="160" [filterable]="false"
+        [sortable]="false" [groupable]="false">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{getStringFromIObjArr(dataItem.RelatedProducts)}}
+        </ng-template>
+    </kendo-grid-column>
+
+    <kendo-grid-column field="IsArchive" title="Архивный" filter="boolean" [width]="120">
+        <ng-template kendoGridCellTemplate let-dataItem>
+            {{dataItem.IsArchive ? 'Да' : 'Нет'}}
+        </ng-template>
+    </kendo-grid-column>
+
+</kendo-grid>
+
+<ng-container #newOrderWindowContainer></ng-container>
+<ng-container #viewOrderWindowContainer></ng-container>
